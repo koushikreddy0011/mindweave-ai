@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Environment variables
+.env
+.env.*
+*.env
+!.env.example
+!**/.env.example
+
+# Database files
+*.db
+*.sqlite3
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node / Frontend
+node_modules/
+.next/
+dist/
+out/
+npm-debug.log*
+yarn-error.log*
+
+# Operating System files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,61 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: mindweave_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_prod_password
+      POSTGRES_DB: mindweave_ai_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - mindweave_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mindweave_ai_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mindweave_backend_prod
+    restart: always
+    env_file:
+      - ./backend/.env
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "False"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres_secure_prod_password@db:5432/mindweave_ai_prod
+      SECRET_KEY: ${SECRET_KEY:-mindweave-production-super-secret-key-change-in-env-98234}
+      GEMINI_MODEL: gemini-3.6-flash
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mindweave_prod_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mindweave_frontend_prod
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - mindweave_prod_network
+volumes:
+  postgres_prod_data:
+networks:
+  mindweave_prod_network:
+    driver: bridge
