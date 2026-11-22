@@ -166,15 +166,19 @@ class MindmapGenerationService:
                     is_transient = (
                         "503" in err_str
                         or "429" in err_str
+                        or "402" in err_str
+                        or "RESOURCE_EXHAUSTED" in err_str
                         or "UNAVAILABLE" in err_str
                         or "high demand" in err_str.lower()
                         or "temporar" in err_str.lower()
+                        or "quota" in err_str.lower()
                     )
                     if is_transient and attempt < max_retries:
                         logger.warning(
-                            "Gemini high demand/503 on attempt %d/%d for topic '%s'. Retrying in %.1fs...",
+                            "Gemini high demand/429 on attempt %d/%d for topic '%s'. Rotating API key slot and retrying in %.1fs...",
                             attempt, max_retries, topic, retry_delay
                         )
+                        client = self.provider.rotate_key()
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                     else:
@@ -363,19 +367,59 @@ class MindmapGenerationService:
         )
 
         try:
-            if hasattr(client, "aio") and hasattr(client.aio, "models"):
-                response = await client.aio.models.generate_content(
-                    model=self.provider.model_name,
-                    contents=prompt,
-                    config=config,
-                )
-            else:
-                response = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=self.provider.model_name,
-                    contents=prompt,
-                    config=config,
-                )
+            max_retries = 3
+            retry_delay = 2.0
+            response = None
+
+            for attempt in range(1, max_retries + 1):
+                try:
+                    logger.info(
+                        "Dispatching prompt to Gemini model '%s' for document '%s' (attempt %d/%d)...",
+                        self.provider.model_name,
+                        filename,
+                        attempt,
+                        max_retries,
+                    )
+                    if hasattr(client, "aio") and hasattr(client.aio, "models"):
+                        response = await client.aio.models.generate_content(
+                            model=self.provider.model_name,
+                            contents=prompt,
+                            config=config,
+                        )
+                    else:
+                        response = await asyncio.to_thread(
+                            client.models.generate_content,
+                            model=self.provider.model_name,
+                            contents=prompt,
+                            config=config,
+                        )
+                    if response and response.text:
+                        break
+                except Exception as exc:
+                    err_str = str(exc)
+                    is_transient = (
+                        "503" in err_str
+                        or "429" in err_str
+                        or "402" in err_str
+                        or "RESOURCE_EXHAUSTED" in err_str
+                        or "UNAVAILABLE" in err_str
+                        or "high demand" in err_str.lower()
+                        or "temporar" in err_str.lower()
+                        or "quota" in err_str.lower()
+                    )
+                    if is_transient and attempt < max_retries:
+                        logger.warning(
+                            "Gemini high demand/429 on attempt %d/%d for document '%s'. Rotating API key slot and retrying in %.1fs...",
+                            attempt, max_retries, filename, retry_delay
+                        )
+                        client = self.provider.rotate_key()
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2
+                    else:
+                        raise
+
+            if not response or not response.text:
+                raise RuntimeError("Received empty response from Gemini API after retries")
 
             clean_json = _clean_json_text(response.text or "")
             return TopicHierarchyOutput.model_validate_json(clean_json)

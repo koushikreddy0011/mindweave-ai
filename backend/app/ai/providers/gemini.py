@@ -24,14 +24,16 @@ class GeminiProvider:
         self.clients: list[genai.Client] = []
         self._current_index = 0
 
-        # Collect keys: explicit key > GEMINI_API_KEYS (comma separated) > GEMINI_API_KEY
-        keys: list[str] = []
+        # Collect and merge all configured keys without duplicates
+        raw_keys: list[str] = []
         if api_key and api_key.strip():
-            keys = [api_key.strip()]
-        elif settings.GEMINI_API_KEYS and settings.GEMINI_API_KEYS.strip():
-            keys = [k.strip() for k in settings.GEMINI_API_KEYS.split(",") if k.strip()]
-        elif settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
-            keys = [settings.GEMINI_API_KEY.strip()]
+            raw_keys.append(api_key.strip())
+        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
+            raw_keys.append(settings.GEMINI_API_KEY.strip())
+        if settings.GEMINI_API_KEYS and settings.GEMINI_API_KEYS.strip():
+            raw_keys.extend([k.strip() for k in settings.GEMINI_API_KEYS.split(",") if k.strip()])
+        # Deduplicate while preserving order
+        keys = list(dict.fromkeys(raw_keys))
 
         for idx, k in enumerate(keys):
             try:
