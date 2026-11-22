@@ -516,7 +516,7 @@ export function CreateMindmapPage(): React.JSX.Element {
                     className="w-full h-11 text-sm font-semibold bg-brand-blue hover:bg-brand-blue/90 text-white shadow-md"
                   >
                     <Sparkles size={16} className="mr-2" />
-                    Generate Mindmap with Gemini 3.6 Flash
+                    Generate Interactive Mindmap
                   </Button>
                 </div>
 

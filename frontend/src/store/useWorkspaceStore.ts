@@ -79,6 +79,7 @@ interface WorkspaceState {
   setActiveWorkspace: (workspace: Workspace) => void;
   createWorkspace: (payload: CreateWorkspacePayload) => Promise<Workspace>;
   fetchMindmaps: (workspaceId?: string) => Promise<void>;
+  deleteMindmap: (mindmapId: string) => Promise<void>;
 }
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
@@ -186,6 +187,27 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     } catch {
       const maps = DEMO_MINDMAPS[targetWsId] || [];
       set({ mindmaps: maps, isLoadingMindmaps: false });
+    }
+  },
+
+  deleteMindmap: async (mindmapId: string) => {
+    const token = localStorage.getItem('access_token');
+    if (token === 'demo-session-token') {
+      set({
+        mindmaps: get().mindmaps.filter((m) => m.id !== mindmapId),
+      });
+      return;
+    }
+
+    try {
+      await mindmapApi.deleteMindmap(mindmapId);
+      set({
+        mindmaps: get().mindmaps.filter((m) => m.id !== mindmapId),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete mindmap';
+      set({ error: message });
+      throw err;
     }
   },
 }));

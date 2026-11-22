@@ -1,4 +1,4 @@
-"""Google Gemini AI client provider wrapper using the official google-genai SDK."""
+"""Google Gemini AI client provider wrapper with multi-key rotation and failover capabilities."""
 
 import asyncio
 import logging
@@ -13,46 +13,68 @@ logger = logging.getLogger("mindweave.ai.provider")
 
 
 class GeminiProvider:
-    """Client wrapper for Google Gemini API operations."""
+    """Client wrapper managing single or multi-key Google Gemini API client pools."""
 
     def __init__(
         self,
         api_key: str | None = None,
         model_name: str | None = None,
     ) -> None:
-        raw_key = api_key if api_key is not None else settings.GEMINI_API_KEY
-        self.api_key = raw_key.strip() if raw_key else ""
         self.model_name = model_name if model_name is not None else settings.GEMINI_MODEL
-        self.client: genai.Client | None = None
+        self.clients: list[genai.Client] = []
+        self._current_index = 0
 
-        if self.api_key:
+        # Collect keys: explicit key > GEMINI_API_KEYS (comma separated) > GEMINI_API_KEY
+        keys: list[str] = []
+        if api_key and api_key.strip():
+            keys = [api_key.strip()]
+        elif settings.GEMINI_API_KEYS and settings.GEMINI_API_KEYS.strip():
+            keys = [k.strip() for k in settings.GEMINI_API_KEYS.split(",") if k.strip()]
+        elif settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
+            keys = [settings.GEMINI_API_KEY.strip()]
+
+        for idx, k in enumerate(keys):
             try:
-                self.client = genai.Client(api_key=self.api_key)
+                c = genai.Client(api_key=k)
+                self.clients.append(c)
             except Exception as exc:
-                logger.error("Failed to initialize Google Gemini client: %s", exc)
-                self.client = None
+                logger.error("Failed to initialize Gemini client for key #%d: %s", idx + 1, exc)
+
+        if self.clients:
+            logger.info("Initialized GeminiProvider with %d active API key(s)", len(self.clients))
         else:
-            logger.warning("GEMINI_API_KEY is not configured or is empty. Development fallback mode enabled.")
+            logger.warning("No valid Gemini API keys configured. High-fidelity development fallback engine active.")
 
     def get_client(self) -> genai.Client | None:
-        """Return the underlying genai.Client instance, or None if unconfigured."""
-        return self.client
+        """Return the active genai.Client instance, or None if unconfigured."""
+        if not self.clients:
+            return None
+        return self.clients[self._current_index % len(self.clients)]
+
+    def rotate_key(self) -> genai.Client | None:
+        """Rotate to the next API key in the pool (used on 429/quota exhaustion)."""
+        if len(self.clients) <= 1:
+            return self.get_client()
+        self._current_index = (self._current_index + 1) % len(self.clients)
+        logger.info("Rotated to API key pool slot #%d of %d", self._current_index + 1, len(self.clients))
+        return self.clients[self._current_index]
 
     async def ping(self) -> dict[str, Any]:
         """Test Gemini API connectivity, key validity, and model latency."""
-        if not self.client:
+        client = self.get_client()
+        if not client:
             raise ValueError("GEMINI_API_KEY is not configured or client failed to initialize")
 
         start_time = time.perf_counter()
 
-        if hasattr(self.client, "aio") and hasattr(self.client.aio, "models"):
-            response = await self.client.aio.models.generate_content(
+        if hasattr(client, "aio") and hasattr(client.aio, "models"):
+            response = await client.aio.models.generate_content(
                 model=self.model_name,
                 contents="Reply with only the word: PONG",
             )
         else:
             response = await asyncio.to_thread(
-                self.client.models.generate_content,
+                client.models.generate_content,
                 model=self.model_name,
                 contents="Reply with only the word: PONG",
             )
@@ -65,6 +87,7 @@ class GeminiProvider:
             "model": self.model_name,
             "latency_ms": latency_ms,
             "response": response_text.strip(),
+            "pool_size": len(self.clients),
         }
 
 

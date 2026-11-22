@@ -7,7 +7,6 @@ import {
   Settings, 
   LogOut, 
   User as UserIcon,
-  Sparkles,
   type LucideIcon
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -35,24 +34,21 @@ export function Sidebar(): React.JSX.Element {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-border flex flex-col h-screen select-none">
+    <aside className="w-64 bg-white border-r border-border flex flex-col justify-between flex-shrink-0 h-screen select-none">
       
       {/* Brand Header */}
-      <div className="p-5 border-b border-border flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-brand-navy flex items-center justify-center text-white shadow-subtle">
-          <Network size={20} className="text-brand-blue" />
+      <div className="h-16 px-6 border-b border-border flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-brand-blue flex items-center justify-center text-white shadow-subtle">
+          <Network size={20} />
         </div>
         <div>
-          <h1 className="text-base font-bold text-brand-navy tracking-tight leading-none">MindWeave AI</h1>
-          <p className="text-[11px] text-slate-500 mt-1">Knowledge Canvas</p>
+          <span className="font-bold text-base tracking-tight text-brand-navy">MindWeave AI</span>
+          <span className="block text-[10px] text-slate-400 font-medium -mt-0.5">Knowledge Explorer</span>
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <div className="px-3 py-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-          Platform
-        </div>
+      {/* Primary Navigation */}
+      <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -75,14 +71,6 @@ export function Sidebar(): React.JSX.Element {
         })}
       </nav>
 
-      {/* AI Status Pill */}
-      <div className="px-3 py-2">
-        <div className="p-3 rounded-lg bg-brand-canvas border border-border/80 flex items-center gap-2 text-xs text-slate-600">
-          <Sparkles size={14} className="text-brand-purple flex-shrink-0" />
-          <span className="truncate">Gemini 3.6 Flash Active</span>
-        </div>
-      </div>
-
       {/* User Footer */}
       <div className="p-3 border-t border-border bg-slate-50/50">
         <div className="flex items-center justify-between gap-2 p-2 rounded-lg">
@@ -100,8 +88,8 @@ export function Sidebar(): React.JSX.Element {
 
           <button
             onClick={handleLogout}
-            title="Sign out"
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            title="Log out"
+            className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
           >
             <LogOut size={16} />
           </button>

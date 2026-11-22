@@ -6,7 +6,6 @@ import {
   Network, 
   Search, 
   Briefcase, 
-  Layers, 
   FolderPlus 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -107,15 +106,18 @@ export function DashboardPage(): React.JSX.Element {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between text-slate-500">
-              <CardDescription>AI Intelligence</CardDescription>
-              <Layers size={16} className="text-emerald-600" />
+              <CardDescription>System Status</CardDescription>
+              <Sparkles size={16} className="text-emerald-600" />
             </div>
             <CardTitle className="text-base font-semibold text-brand-navy">
-              Gemini 3.6 Flash
+              Knowledge Engine
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-slate-500">Pydantic Schema Output Active</p>
+            <p className="text-xs text-emerald-600 font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Online & Operational
+            </p>
           </CardContent>
         </Card>
 

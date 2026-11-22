@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours default for development
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/mindweave_ai"
     GEMINI_API_KEY: str = ""
+    GEMINI_API_KEYS: str = ""  # Comma-separated list for multi-key rotation: "key1,key2,key3"
     GEMINI_MODEL: str = "gemini-3.6-flash"
 
 

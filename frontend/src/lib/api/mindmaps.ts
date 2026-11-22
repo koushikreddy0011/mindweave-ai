@@ -50,6 +50,10 @@ export const mindmapApi = {
     return response.data;
   },
 
+  async deleteMindmap(mindmapId: string): Promise<void> {
+    await apiClient.delete(`/mindmaps/${mindmapId}`);
+  },
+
   async generateTopicMindmap(payload: TopicGenerationPayload): Promise<{ mindmap_id: string; status: string }> {
     const response = await apiClient.post<{ mindmap_id: string; status: string }>(
       '/generations/topic?async_mode=true',
